@@ -1,0 +1,25 @@
+@import "tailwindcss";
+
+@theme {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-primary: var(--primary);
+}
+
+:root {
+  --background: theme(--color-zinc-50);
+  --foreground: theme(--color-zinc-950);
+  --primary: theme(--color-green-500);
+}
+.dark-mode {
+  --background: theme(--color-zinc-950);
+  --foreground: theme(--color-zinc-50);
+  --primary: theme(--color-green-500);
+}
+
+::selection {
+  @apply bg-primary/20;
+}
+html {
+  @apply bg-background text-foreground;
+}
