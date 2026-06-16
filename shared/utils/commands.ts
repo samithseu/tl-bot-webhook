@@ -1,248 +1,245 @@
 import type {
-  AIResponseType,
+  ValidatedMessage,
   BotCommand,
-  IncomingRequest,
-  JokeType,
+  ITelegramClient,
   MemeType,
+  JokeType,
+  AIResponseType,
 } from "~~/types/api";
 import {
-  gettingFile,
-  gettingUserProfilePhoto,
-  sendingChatAction,
-  sendingMessage,
-  sendingPhoto,
-} from "./helper";
+  QUOTE_API,
+  JOKE_API,
+  OPENROUTER_API,
+  AI_MODEL,
+  AI_SYSTEM_PROMPT,
+  MEME_API,
+} from "~~/shared/constants";
 
-export const allCommands: BotCommand[] = [
-  { command: "start", description: "Greetings!" },
-  { command: "me", description: "Show Telegram account info." },
-  { command: "quote", description: "Fetch random quote from Internet." },
-  { command: "joke", description: "Fetch random joke from Internet." },
-  { command: "ask", description: "Ask AI about something. (briefly)" },
-  { command: "meme", description: "Fetch programming meme from Internet." },
-  { command: "profile", description: "Get your profile photo." },
-  { command: "help", description: "Show all commands." },
-];
+export interface CommandHandler {
+  command: string;
+  description: string;
+  handler: (ctx: CommandContext) => Promise<void>;
+}
 
-export const startCommand = async (
-  baseUrl: string,
-  msgObj: IncomingRequest,
+export interface CommandContext {
+  client: ITelegramClient;
+  message: ValidatedMessage;
+  llmToken: string;
+  memeToken: string;
+}
+
+const sendTyping = (client: ITelegramClient, chatId: number) =>
+  client.sendChatAction(chatId, "typing");
+
+const sendUploading = (client: ITelegramClient, chatId: number) =>
+  client.sendChatAction(chatId, "upload_photo");
+
+const replyWithError = async (
+  client: ITelegramClient,
+  chatId: number,
+  context: string,
 ) => {
-  await sendingChatAction(baseUrl, msgObj, "typing");
-  return await sendingMessage(
-    baseUrl,
-    msgObj,
-    `Hello, <b>${msgObj.message!.from.first_name}!</b>\nWelcome to <a href="https://t.me/this_is_sigma_bot">this_is_sigma_bot</a> 🗿`,
+  await client.sendMessage(chatId, `Sorry, I couldn't get ${context} 🙁`);
+};
+
+const handleStart = async (ctx: CommandContext) => {
+  const { client, message } = ctx;
+  await sendTyping(client, message.chat.id);
+  await client.sendMessage(
+    message.chat.id,
+    `Hello, <b>${message.from.first_name}!</b>\nWelcome to <a href="https://t.me/this_is_sigma_bot">this_is_sigma_bot</a> 🗿`,
     { parse_mode: "HTML" },
   );
 };
 
-export const helpCommand = async (baseUrl: string, msgObj: IncomingRequest) => {
-  await sendingChatAction(baseUrl, msgObj, "typing");
-  return await sendingMessage(
-    baseUrl,
-    msgObj,
-    `Here are all the commands:\n\n${allCommands
-      .map((command) => `/${command.command} - ${command.description}`)
-      .join("\n")}`,
-  );
+const handleHelp = async (ctx: CommandContext) => {
+  const { client, message } = ctx;
+  await sendTyping(client, message.chat.id);
+  const text = `Here are all the commands:\n\n${commandRegistry
+    .map((c) => `/${c.command} - ${c.description}`)
+    .join("\n")}`;
+  await client.sendMessage(message.chat.id, text);
 };
 
-export const meCommand = async (baseUrl: string, msgObj: IncomingRequest) => {
-  await sendingChatAction(baseUrl, msgObj, "typing");
-  const m = msgObj.message!;
-  const id = m.from.id;
-  const name = m.from.first_name;
-  const username = m.from.username;
-  const isPrem = m.from.is_premium;
-  const isBA = m.from.username === "samithseu";
+const handleMe = async (ctx: CommandContext) => {
+  const { client, message } = ctx;
+  await sendTyping(client, message.chat.id);
+  const { id, first_name: name, username, is_premium } = message.from;
+  const isOwner = username === "samithseu";
 
-  return await sendingMessage(
-    baseUrl,
-    msgObj,
-    `<blockquote>Telegram Account Info: </blockquote>
-- <b>ID:                        </b><code>${id}</code>
-- <b>Name:                </b><code>${name}</code>
-- <b>Username:        </b><a href="tg://user?id=${id}">@${username}</a>
-- <b>Is Premium:     </b><code>${isPrem ? "✅" : "❌"}</code>
-- <b>Bot Owner:      </b><code>${isBA ? "✅" : "❌"}</code>
-    `,
+  await client.sendMessage(
+    message.chat.id,
+    `<blockquote>Telegram Account Info: </blockquote>\n` +
+      `- <b>ID:                </b><code>${id}</code>\n` +
+      `- <b>Name:          </b><code>${name}</code>\n` +
+      `- <b>Username:  </b><a href="tg://user?id=${id}">@${username}</a>\n` +
+      `- <b>Is Premium: </b><code>${is_premium ? "✅" : "❌"}</code>\n` +
+      `- <b>Bot Owner:   </b><code>${isOwner ? "✅" : "❌"}</code>`,
     { parse_mode: "HTML" },
   );
 };
 
-export const quoteCommand = async (
-  baseUrl: string,
-  msgObj: IncomingRequest,
-) => {
+const handleQuote = async (ctx: CommandContext) => {
+  const { client, message } = ctx;
+  await sendTyping(client, message.chat.id);
   try {
-    await sendingChatAction(baseUrl, msgObj, "typing");
-    const data = await $fetch<{ quote?: string; author?: string }>(
-      "https://quotes-api-self.vercel.app/quote",
-    );
-    return await sendingMessage(
-      baseUrl,
-      msgObj,
-      `<blockquote>${data?.quote ?? ""}</blockquote> By <i>${
-        data?.author ?? ""
-      }</i>`,
+    const data = await $fetch<{ quote?: string; author?: string }>(QUOTE_API);
+    await client.sendMessage(
+      message.chat.id,
+      `<blockquote>${data?.quote ?? ""}</blockquote> By <i>${data?.author ?? ""}</i>`,
       { parse_mode: "HTML" },
     );
-  } catch (error) {
-    console.error("[ERROR]: ", error);
-    return await sendingMessage(
-      baseUrl,
-      msgObj,
-      `Sorry, I couldn't get a quote 🙁`,
-    );
+  } catch {
+    await replyWithError(client, message.chat.id, "a quote");
   }
 };
 
-export const jokeCommand = async (baseUrl: string, msgObj: IncomingRequest) => {
+const handleJoke = async (ctx: CommandContext) => {
+  const { client, message } = ctx;
+  await sendTyping(client, message.chat.id);
   try {
-    await sendingChatAction(baseUrl, msgObj, "typing");
-    const data = await $fetch<JokeType>(
-      "https://v2.jokeapi.dev/joke/Any?type=twopart",
-    );
-    return await sendingMessage(
-      baseUrl,
-      msgObj,
+    const data = await $fetch<JokeType>(JOKE_API);
+    await client.sendMessage(
+      message.chat.id,
       `<blockquote>${data.setup}</blockquote>\nAnswer: <span class='tg-spoiler'>${data.delivery}</span>`,
       { parse_mode: "HTML" },
     );
-  } catch (error) {
-    console.error("[ERROR]: ", error);
-    return await sendingMessage(
-      baseUrl,
-      msgObj,
-      `Sorry, I couldn't get a joke 🙁`,
-    );
+  } catch {
+    await replyWithError(client, message.chat.id, "a joke");
   }
 };
 
-export const askCommand = async (
-  baseUrl: string,
-  msgObj: IncomingRequest,
-  token: string,
-) => {
+const handleAsk = async (ctx: CommandContext) => {
+  const { client, message, llmToken } = ctx;
+
+  if (message.text === "/ask") {
+    await client.sendMessage(
+      message.chat.id,
+      "Example: <code>/ask What's AI?</code>",
+      { parse_mode: "HTML" },
+    );
+    return;
+  }
+
+  await sendTyping(client, message.chat.id);
+  await sendTyping(client, message.chat.id);
+  const query = message.text.slice("/ask ".length);
+
   try {
-    const m = msgObj.message!;
-    if (m.text === "/ask") {
-      return await sendingMessage(
-        baseUrl,
-        msgObj,
-        "Example: <code>/ask What's AI?</code>",
-        { parse_mode: "HTML" },
-      );
-    }
-    await sendingChatAction(baseUrl, msgObj, "typing");
-    await sendingChatAction(baseUrl, msgObj, "typing");
-    const query = m.text?.slice("/ask ".length) ?? "";
-
-    const url = "https://openrouter.ai/api/v1/chat/completions";
-    const bodyData = {
-      model: "minimax/minimax-m2:free",
-      messages: [
-        {
-          role: "user",
-          content:
-            "You are the smartest assistant in the world and whenever you get asked any question, please concisely answer it. Do not answer it really long. Also if user is asking to write code, just wrap the code result in ``` and ``` as well. Just keep it short and exactly what the user asked.",
-        },
-        { role: "user", content: query },
-      ],
-    };
-
-    const AIres: AIResponseType = await $fetch(url, {
+    const AIres = await $fetch<AIResponseType>(OPENROUTER_API, {
       method: "POST",
       headers: {
-        Authorization: `Bearer ${token}`,
+        Authorization: `Bearer ${llmToken}`,
         "Content-Type": "application/json",
       },
-      body: JSON.stringify(bodyData),
-    });
-    return await sendingMessage(
-      baseUrl,
-      msgObj,
-      AIres.choices[0]?.message.content ?? "No response!",
-      {
-        parse_mode: "Markdown",
+      body: {
+        model: AI_MODEL,
+        messages: [
+          { role: "user", content: AI_SYSTEM_PROMPT },
+          { role: "user", content: query },
+        ],
       },
+    });
+    await client.sendMessage(
+      message.chat.id,
+      AIres.choices[0]?.message.content ?? "No response!",
+      { parse_mode: "Markdown" },
     );
-  } catch (error) {
-    console.error("[ERROR]: ", error);
-    return await sendingMessage(
-      baseUrl,
-      msgObj,
-      `Sorry, I couldn't get the response 🙁`,
-    );
+  } catch {
+    await replyWithError(client, message.chat.id, "the response");
   }
 };
 
-export const memeCommand = async (
-  baseUrl: string,
-  msgObj: IncomingRequest,
-  token: string,
-) => {
+const handleMeme = async (ctx: CommandContext) => {
+  const { client, message, memeToken } = ctx;
+  await sendUploading(client, message.chat.id);
+  await sendUploading(client, message.chat.id);
+
   try {
-    await sendingChatAction(baseUrl, msgObj, "upload_photo");
-    await sendingChatAction(baseUrl, msgObj, "upload_photo");
-
-    const url = "https://programming-memes-images.p.rapidapi.com/v1/memes";
-    const headers = {
-      "x-rapidapi-key": token,
-      "x-rapidapi-host": "programming-memes-images.p.rapidapi.com",
-    };
-
-    const res: MemeType[] = await $fetch(url, { method: "GET", headers });
-    return await sendingPhoto(baseUrl, msgObj, res[0]?.image ?? "");
-  } catch (error) {
-    console.error("[ERROR]: ", error);
-    return await sendingMessage(
-      baseUrl,
-      msgObj,
-      `Sorry, I couldn't get meme photo 🙁`,
-    );
-  }
-};
-
-export const profileCommand = async (
-  baseUrl: string,
-  msgObj: IncomingRequest,
-  token: string,
-) => {
-  try {
-    await sendingChatAction(baseUrl, msgObj, "upload_photo");
-    const userProfile = await gettingUserProfilePhoto(baseUrl, msgObj, 0, 1);
-    if (userProfile?.ok && userProfile?.result.total_count > 0) {
-      const file_id = userProfile.result.photos[0]?.at(-1)?.file_id;
-      if (!file_id) return;
-
-      return await sendingPhoto(baseUrl, msgObj, file_id);
-    } else {
-      return await sendingMessage(
-        baseUrl,
-        msgObj,
-        `Sorry, You've got no profile photo 🙁`,
-      );
+    const res: MemeType[] = await $fetch(MEME_API, {
+      method: "GET",
+      headers: {
+        "x-rapidapi-key": memeToken,
+        "x-rapidapi-host": "programming-memes-images.p.rapidapi.com",
+      },
+    });
+    const image = res[0]?.image;
+    if (!image) {
+      await replyWithError(client, message.chat.id, "meme photo");
+      return;
     }
-  } catch (error) {
-    console.error("[ERROR]: ", error);
-    return await sendingMessage(
-      baseUrl,
-      msgObj,
-      `Sorry, I couldn't get user profile photo 🙁`,
-    );
+    await client.sendPhoto(message.chat.id, image);
+  } catch {
+    await replyWithError(client, message.chat.id, "meme photo");
   }
 };
 
-export const unknownCommand = async (
-  baseUrl: string,
-  msgObj: IncomingRequest,
-) => {
-  const text = msgObj.message?.text ?? "unknown message";
-  return await sendingMessage(
-    baseUrl,
-    msgObj,
-    `${text}\n\nSorry, I didn't understand this 🙁\nType /help for all valid commands.`,
+const handleProfile = async (ctx: CommandContext) => {
+  const { client, message } = ctx;
+  await sendUploading(client, message.chat.id);
+
+  try {
+    const photos = await client.getUserProfilePhotos(message.from.id, 0, 1);
+    if (photos && photos.total_count > 0) {
+      const fileId = photos.photos[0]?.at(-1)?.file_id;
+      if (fileId) {
+        await client.sendPhoto(message.chat.id, fileId);
+        return;
+      }
+    }
+    await client.sendMessage(
+      message.chat.id,
+      "Sorry, You've got no profile photo 🙁",
+    );
+  } catch {
+    await replyWithError(client, message.chat.id, "user profile photo");
+  }
+};
+
+const handleUnknown = async (ctx: CommandContext) => {
+  const { client, message } = ctx;
+  await client.sendMessage(
+    message.chat.id,
+    `${message.text}\n\nSorry, I didn't understand this 🙁\nType /help for all valid commands.`,
   );
 };
+
+export const commandRegistry: CommandHandler[] = [
+  { command: "start", description: "Greetings!", handler: handleStart },
+  {
+    command: "me",
+    description: "Show Telegram account info.",
+    handler: handleMe,
+  },
+  {
+    command: "quote",
+    description: "Fetch random quote from Internet.",
+    handler: handleQuote,
+  },
+  {
+    command: "joke",
+    description: "Fetch random joke from Internet.",
+    handler: handleJoke,
+  },
+  {
+    command: "ask",
+    description: "Ask AI about something. (briefly)",
+    handler: handleAsk,
+  },
+  {
+    command: "meme",
+    description: "Fetch programming meme from Internet.",
+    handler: handleMeme,
+  },
+  {
+    command: "profile",
+    description: "Get your profile photo.",
+    handler: handleProfile,
+  },
+  { command: "help", description: "Show all commands.", handler: handleHelp },
+  { command: "unknown", description: "", handler: handleUnknown },
+];
+
+export const allCommands: BotCommand[] = commandRegistry.map(
+  ({ command, description }) => ({ command, description }),
+);

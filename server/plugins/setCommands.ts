@@ -1,7 +1,8 @@
-import { settingMyCommands } from "~~/shared/utils/helper";
+import { TelegramClient } from "~~/server/utils/telegram";
+import { allCommands } from "~~/shared/utils/commands";
 
-export default defineNitroPlugin(async (nitro) => {
+export default defineNitroPlugin(async () => {
   const { tlBotToken } = useRuntimeConfig();
-  const BASE_URL = `https://api.telegram.org/bot${tlBotToken}`;
-  await settingMyCommands(BASE_URL);
+  const client = new TelegramClient(tlBotToken);
+  await client.setMyCommands(allCommands);
 });
