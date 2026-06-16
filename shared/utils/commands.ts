@@ -55,10 +55,12 @@ const handleStart = async (ctx: CommandContext) => {
 const handleHelp = async (ctx: CommandContext) => {
   const { client, message } = ctx;
   await sendTyping(client, message.chat.id);
-  const text = `Here are all the commands:\n\n${commandRegistry
-    .map((c) => `/${c.command} - ${c.description}`)
-    .join("\n")}`;
-  await client.sendMessage(message.chat.id, text);
+  const commandsList = commandRegistry
+    .filter((c) => c.command !== "unknown")
+    .map((c) => `| /${c.command} | ${c.description} |`)
+    .join("\n");
+  const markdown = `# 🤖 Bot Commands\n\nHere are all the commands I support:\n\n| Command | Description |\n|:--------|:------------|\n${commandsList}\n\n---\n\n_Tip: Use \`/ask <query>\` to ask me anything using AI!_`;
+  await client.sendRichMessage(message.chat.id, { markdown });
 };
 
 const handleMe = async (ctx: CommandContext) => {

@@ -2,6 +2,7 @@ import type {
   BotCommand,
   ChatActionType,
   FileInfo,
+  InputRichMessage,
   ITelegramClient,
   SentMessage,
   TelegramResponse,
@@ -92,6 +93,23 @@ export class TelegramClient implements ITelegramClient {
       return res.result;
     } catch (error) {
       console.error("[TelegramClient.getFile]", error);
+      return null;
+    }
+  }
+
+  async sendRichMessage(
+    chatId: number,
+    richMessage: InputRichMessage,
+    opts?: Record<string, unknown>,
+  ): Promise<SentMessage | null> {
+    try {
+      const res = await $fetch<TelegramResponse<SentMessage>>(
+        `${this.baseUrl}/sendRichMessage`,
+        { method: "POST", body: { chat_id: chatId, rich_message: richMessage, ...opts } },
+      );
+      return res.result;
+    } catch (error) {
+      console.error("[TelegramClient.sendRichMessage]", error);
       return null;
     }
   }

@@ -84,6 +84,13 @@ export type ChatActionType =
   | "upload_video_note"
   | "typing";
 
+export interface InputRichMessage {
+  html?: string;
+  markdown?: string;
+  is_rtl?: boolean;
+  skip_entity_detection?: boolean;
+}
+
 export interface BotCommand {
   command: string;
   description: string;
@@ -107,6 +114,11 @@ export interface ITelegramClient {
     limit?: number,
   ): Promise<UserProfilePhotos | null>;
   getFile(fileId: string): Promise<FileInfo | null>;
+  sendRichMessage(
+    chatId: number,
+    richMessage: InputRichMessage,
+    opts?: Record<string, unknown>,
+  ): Promise<SentMessage | null>;
   setMyCommands(commands: BotCommand[]): Promise<boolean>;
 }
 
