@@ -10,10 +10,9 @@ export const handleCommands = async (
   client: ITelegramClient,
   message: ValidatedMessage,
   llmToken: string,
-  memeToken: string,
 ): Promise<void> => {
   const command = getCommand(message.text);
-  const ctx: CommandContext = { client, message, llmToken, memeToken };
+  const ctx: CommandContext = { client, message, llmToken };
 
   const entry = command
     ? commandRegistry.find((c) => c.command === command)

@@ -24,7 +24,6 @@ export interface CommandContext {
   client: ITelegramClient;
   message: ValidatedMessage;
   llmToken: string;
-  memeToken: string;
 }
 
 const sendTyping = (client: ITelegramClient, chatId: number) =>

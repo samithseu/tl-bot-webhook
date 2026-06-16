@@ -122,16 +122,6 @@ export interface ITelegramClient {
   setMyCommands(commands: BotCommand[]): Promise<boolean>;
 }
 
-export interface MemeType {
-  id: number;
-  created: Date;
-  modified: Date;
-  image: string;
-  tags: null;
-  upvotes: number;
-  downvotes: number;
-}
-
 export interface JokeType {
   error: boolean;
   category: string;

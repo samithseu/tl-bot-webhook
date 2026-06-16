@@ -21,7 +21,7 @@ const validate = (
 
 export default defineEventHandler(
   async (event: H3Event<EventHandlerRequest>) => {
-    const { tlBotToken, openRouterToken, funnyPhotoToken } =
+    const { tlBotToken, openRouterToken } =
       useRuntimeConfig(event);
 
     const req = await readBody<IncomingRequest>(event);
@@ -40,7 +40,6 @@ export default defineEventHandler(
       client,
       validated.message,
       openRouterToken,
-      funnyPhotoToken,
     );
   },
 );
