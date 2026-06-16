@@ -23,14 +23,15 @@ export const handleCommands = async (
     console.error("[ERROR]: Bot endpoint is not defined!");
     return;
   }
-  if (!msgObj || msgObj.message.text.length === 0) {
-    console.error("[ERROR]: incoming request is not defined!");
+  if (!msgObj?.message?.text) {
+    console.error("[ERROR]: incoming request has no message or text!");
     return;
   }
 
   let command: string | undefined;
   if (msgObj.message.text.startsWith("/")) {
     command = msgObj.message.text.split(" ")[0]?.slice(1) ?? undefined;
+    command = command?.split("@")[0];
 
     // each command
     switch (command) {

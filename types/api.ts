@@ -1,6 +1,6 @@
 export interface IncomingRequest {
   update_id: number;
-  message: Message;
+  message?: Message;
 }
 
 interface Message {
@@ -20,7 +20,7 @@ interface Message {
     type: string;
   };
   date: number;
-  text: string;
+  text?: string;
 }
 
 export interface OutgoingResponse {

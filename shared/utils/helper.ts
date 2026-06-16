@@ -9,11 +9,13 @@ import { allCommands } from "~~/shared/utils/commands";
 
 // LOGGING
 export const logging = (msgObj: IncomingRequest) => {
+  if (!msgObj.message?.text) return;
+  const m = msgObj.message;
   try {
     console.log(
-      `[LOG]: "${msgObj.message.text}" by ${msgObj.message.from.username} (${
-        msgObj.message.from.id
-      }) at ${new Date(msgObj.message.date * 1000).toLocaleString()}`
+      `[LOG]: "${m.text}" by ${m.from.username} (${
+        m.from.id
+      }) at ${new Date(m.date * 1000).toLocaleString()}`
     );
   } catch (error) {
     console.error("[ERROR]: ", error);
@@ -54,7 +56,7 @@ export const sendingMessage = async (
       },
       method: "POST",
       body: JSON.stringify({
-        chat_id: msgObj.message.chat.id,
+        chat_id: msgObj.message!.chat.id,
         text: msg,
         ...msgOptions,
       }),
@@ -77,7 +79,7 @@ export const sendingPhoto = async (
     return await $fetch<OutgoingResponse>(`${baseUrl}/sendPhoto`, {
       method: "POST",
       body: {
-        chat_id: msgObj.message.chat.id,
+        chat_id: msgObj.message!.chat.id,
         photo: photo,
         ...photoOptions,
       },
@@ -102,7 +104,7 @@ export const sendingChatAction = async (
       },
       method: "POST",
       body: JSON.stringify({
-        chat_id: msgObj.message.chat.id,
+        chat_id: msgObj.message!.chat.id,
         action: action,
       }),
     });
@@ -129,7 +131,7 @@ export const gettingUserProfilePhoto = async (
           Accept: "application/json",
         },
         body: JSON.stringify({
-          user_id: msgObj.message.from.id,
+          user_id: msgObj.message!.from.id,
           offset,
           limit,
         }),

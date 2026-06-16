@@ -26,14 +26,14 @@ export const allCommands: BotCommand[] = [
 
 export const startCommand = async (
   baseUrl: string,
-  msgObj: IncomingRequest
+  msgObj: IncomingRequest,
 ) => {
   await sendingChatAction(baseUrl, msgObj, "typing");
   return await sendingMessage(
     baseUrl,
     msgObj,
-    `Hello, <b>${msgObj.message.from.first_name}!</b>\nWelcome to <a href="https://t.me/this_is_sigma_bot">this_is_sigma_bot</a> 🗿`,
-    { parse_mode: "HTML" }
+    `Hello, <b>${msgObj.message!.from.first_name}!</b>\nWelcome to <a href="https://t.me/this_is_sigma_bot">this_is_sigma_bot</a> 🗿`,
+    { parse_mode: "HTML" },
   );
 };
 
@@ -44,17 +44,18 @@ export const helpCommand = async (baseUrl: string, msgObj: IncomingRequest) => {
     msgObj,
     `Here are all the commands:\n\n${allCommands
       .map((command) => `/${command.command} - ${command.description}`)
-      .join("\n")}`
+      .join("\n")}`,
   );
 };
 
 export const meCommand = async (baseUrl: string, msgObj: IncomingRequest) => {
   await sendingChatAction(baseUrl, msgObj, "typing");
-  const id = msgObj.message.from.id;
-  const name = msgObj.message.from.first_name;
-  const username = msgObj.message.from.username;
-  const isPrem = msgObj.message.from.is_premium;
-  const isBA = msgObj.message.from.username === "samithseu";
+  const m = msgObj.message!;
+  const id = m.from.id;
+  const name = m.from.first_name;
+  const username = m.from.username;
+  const isPrem = m.from.is_premium;
+  const isBA = m.from.username === "samithseu";
 
   return await sendingMessage(
     baseUrl,
@@ -66,18 +67,18 @@ export const meCommand = async (baseUrl: string, msgObj: IncomingRequest) => {
 - <b>Is Premium:     </b><code>${isPrem ? "✅" : "❌"}</code>
 - <b>Bot Owner:      </b><code>${isBA ? "✅" : "❌"}</code>
     `,
-    { parse_mode: "HTML" }
+    { parse_mode: "HTML" },
   );
 };
 
 export const quoteCommand = async (
   baseUrl: string,
-  msgObj: IncomingRequest
+  msgObj: IncomingRequest,
 ) => {
   try {
     await sendingChatAction(baseUrl, msgObj, "typing");
     const data = await $fetch<{ quote?: string; author?: string }>(
-      "https://quotes-api-self.vercel.app/quote"
+      "https://quotes-api-self.vercel.app/quote",
     );
     return await sendingMessage(
       baseUrl,
@@ -85,14 +86,14 @@ export const quoteCommand = async (
       `<blockquote>${data?.quote ?? ""}</blockquote> By <i>${
         data?.author ?? ""
       }</i>`,
-      { parse_mode: "HTML" }
+      { parse_mode: "HTML" },
     );
   } catch (error) {
     console.error("[ERROR]: ", error);
     return await sendingMessage(
       baseUrl,
       msgObj,
-      `Sorry, I couldn't get a quote 🙁`
+      `Sorry, I couldn't get a quote 🙁`,
     );
   }
 };
@@ -101,20 +102,20 @@ export const jokeCommand = async (baseUrl: string, msgObj: IncomingRequest) => {
   try {
     await sendingChatAction(baseUrl, msgObj, "typing");
     const data = await $fetch<JokeType>(
-      "https://v2.jokeapi.dev/joke/Any?type=twopart"
+      "https://v2.jokeapi.dev/joke/Any?type=twopart",
     );
     return await sendingMessage(
       baseUrl,
       msgObj,
       `<blockquote>${data.setup}</blockquote>\nAnswer: <span class='tg-spoiler'>${data.delivery}</span>`,
-      { parse_mode: "HTML" }
+      { parse_mode: "HTML" },
     );
   } catch (error) {
     console.error("[ERROR]: ", error);
     return await sendingMessage(
       baseUrl,
       msgObj,
-      `Sorry, I couldn't get a joke 🙁`
+      `Sorry, I couldn't get a joke 🙁`,
     );
   }
 };
@@ -122,20 +123,21 @@ export const jokeCommand = async (baseUrl: string, msgObj: IncomingRequest) => {
 export const askCommand = async (
   baseUrl: string,
   msgObj: IncomingRequest,
-  token: string
+  token: string,
 ) => {
   try {
-    if (msgObj.message.text === "/ask") {
+    const m = msgObj.message!;
+    if (m.text === "/ask") {
       return await sendingMessage(
         baseUrl,
         msgObj,
         "Example: <code>/ask What's AI?</code>",
-        { parse_mode: "HTML" }
+        { parse_mode: "HTML" },
       );
     }
     await sendingChatAction(baseUrl, msgObj, "typing");
     await sendingChatAction(baseUrl, msgObj, "typing");
-    const query = msgObj.message.text.slice("/ask ".length);
+    const query = m.text?.slice("/ask ".length) ?? "";
 
     const url = "https://openrouter.ai/api/v1/chat/completions";
     const bodyData = {
@@ -164,14 +166,14 @@ export const askCommand = async (
       AIres.choices[0]?.message.content ?? "No response!",
       {
         parse_mode: "Markdown",
-      }
+      },
     );
   } catch (error) {
     console.error("[ERROR]: ", error);
     return await sendingMessage(
       baseUrl,
       msgObj,
-      `Sorry, I couldn't get the response 🙁`
+      `Sorry, I couldn't get the response 🙁`,
     );
   }
 };
@@ -179,7 +181,7 @@ export const askCommand = async (
 export const memeCommand = async (
   baseUrl: string,
   msgObj: IncomingRequest,
-  token: string
+  token: string,
 ) => {
   try {
     await sendingChatAction(baseUrl, msgObj, "upload_photo");
@@ -198,7 +200,7 @@ export const memeCommand = async (
     return await sendingMessage(
       baseUrl,
       msgObj,
-      `Sorry, I couldn't get meme photo 🙁`
+      `Sorry, I couldn't get meme photo 🙁`,
     );
   }
 };
@@ -206,7 +208,7 @@ export const memeCommand = async (
 export const profileCommand = async (
   baseUrl: string,
   msgObj: IncomingRequest,
-  token: string
+  token: string,
 ) => {
   try {
     await sendingChatAction(baseUrl, msgObj, "upload_photo");
@@ -220,7 +222,7 @@ export const profileCommand = async (
       return await sendingMessage(
         baseUrl,
         msgObj,
-        `Sorry, You've got no profile photo 🙁`
+        `Sorry, You've got no profile photo 🙁`,
       );
     }
   } catch (error) {
@@ -228,18 +230,19 @@ export const profileCommand = async (
     return await sendingMessage(
       baseUrl,
       msgObj,
-      `Sorry, I couldn't get user profile photo 🙁`
+      `Sorry, I couldn't get user profile photo 🙁`,
     );
   }
 };
 
 export const unknownCommand = async (
   baseUrl: string,
-  msgObj: IncomingRequest
+  msgObj: IncomingRequest,
 ) => {
+  const text = msgObj.message?.text ?? "unknown message";
   return await sendingMessage(
     baseUrl,
     msgObj,
-    `${msgObj.message.text}\n\nSorry, I didn't understand this 🙁\nType /help for all valid commands.`
+    `${text}\n\nSorry, I didn't understand this 🙁\nType /help for all valid commands.`,
   );
 };
