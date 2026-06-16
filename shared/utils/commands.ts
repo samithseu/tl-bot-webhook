@@ -2,7 +2,6 @@ import type {
   ValidatedMessage,
   BotCommand,
   ITelegramClient,
-  MemeType,
   JokeType,
   AIResponseType,
 } from "~~/types/api";
@@ -85,12 +84,12 @@ const handleQuote = async (ctx: CommandContext) => {
   const { client, message } = ctx;
   await sendTyping(client, message.chat.id);
   try {
-    const data = await $fetch<{ quote?: string; author?: string }>(QUOTE_API);
-    await client.sendMessage(
-      message.chat.id,
-      `<blockquote>${data?.quote ?? ""}</blockquote> By <i>${data?.author ?? ""}</i>`,
-      { parse_mode: "HTML" },
-    );
+    const data = await $fetch<{ q: string; a: string }[]>(QUOTE_API);
+    const quote = data[0]?.q ?? "";
+    const author = data[0]?.a ?? "";
+    await client.sendRichMessage(message.chat.id, {
+      html: `<blockquote>${quote}</blockquote>\n<b>— ${author}</b>`,
+    });
   } catch {
     await replyWithError(client, message.chat.id, "a quote");
   }
@@ -114,18 +113,16 @@ const handleJoke = async (ctx: CommandContext) => {
 const handleAsk = async (ctx: CommandContext) => {
   const { client, message, llmToken } = ctx;
 
-  if (message.text === "/ask") {
-    await client.sendMessage(
-      message.chat.id,
-      "Example: <code>/ask What's AI?</code>",
-      { parse_mode: "HTML" },
-    );
+  if (!message.text.includes(" ")) {
+    await client.sendRichMessage(message.chat.id, {
+      html: "Example: <code>/ask What's AI?</code>",
+    });
     return;
   }
 
   await sendTyping(client, message.chat.id);
   await sendTyping(client, message.chat.id);
-  const query = message.text.slice("/ask ".length);
+  const query = message.text.slice(message.text.indexOf(" ") + 1);
 
   try {
     const AIres = await $fetch<AIResponseType>(OPENROUTER_API, {
@@ -142,35 +139,30 @@ const handleAsk = async (ctx: CommandContext) => {
         ],
       },
     });
-    await client.sendMessage(
-      message.chat.id,
-      AIres.choices[0]?.message.content ?? "No response!",
-      { parse_mode: "Markdown" },
-    );
+    await client.sendRichMessage(message.chat.id, {
+      markdown: AIres.choices[0]?.message.content ?? "No response!",
+    });
   } catch {
     await replyWithError(client, message.chat.id, "the response");
   }
 };
 
 const handleMeme = async (ctx: CommandContext) => {
-  const { client, message, memeToken } = ctx;
+  const { client, message } = ctx;
   await sendUploading(client, message.chat.id);
   await sendUploading(client, message.chat.id);
 
   try {
-    const res: MemeType[] = await $fetch(MEME_API, {
-      method: "GET",
-      headers: {
-        "x-rapidapi-key": memeToken,
-        "x-rapidapi-host": "programming-memes-images.p.rapidapi.com",
-      },
-    });
-    const image = res[0]?.image;
+    const res = await $fetch<{ url: string; title: string; subreddit: string }>(MEME_API);
+    const image = res.url;
     if (!image) {
       await replyWithError(client, message.chat.id, "meme photo");
       return;
     }
-    await client.sendPhoto(message.chat.id, image);
+    await client.sendPhoto(message.chat.id, image, {
+      caption: `<b>${res.title}</b>\n<code>r/${res.subreddit}</code>`,
+      parse_mode: "HTML",
+    });
   } catch {
     await replyWithError(client, message.chat.id, "meme photo");
   }
