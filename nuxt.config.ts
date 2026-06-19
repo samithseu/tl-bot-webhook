@@ -19,4 +19,5 @@ export default defineNuxtConfig({
     tlBotToken: "",
     openRouterToken: "",
   },
+  routeRules: { "/": { prerender: true } },
 });
